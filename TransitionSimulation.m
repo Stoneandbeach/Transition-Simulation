@@ -1,4 +1,6 @@
-%Transition between 1s and 2p in a laser field
+%Simulation of the transition between 1s and 2p of a hydrogen atom in a
+%laser field, displaying probability distribution of electron and evolution
+%of the Bloch vector.
 %Please allow some time for program to run
 
 clear all
@@ -19,8 +21,8 @@ Om = a0 / (2*sqrt(2)) * e * E0 / hbar; %Rabi frequency
 d = 0; %1e10; %Detuning
 Ga = 0; %1e10; %Decay, for example spontaneous emission
 tstart = 0;
-tend = 2.20e-10 / 2;
-numpoints = 100;
+tend = 2.20e-10;
+numpoints = 200;
 
 %Frequencies for the states
 w1 = 2*pi*c*Ryd; %1s
@@ -57,45 +59,64 @@ phi2 = @(x, y) sqrt(3/(4*pi)) * y / sqrt(x^2 + y^2) * (1/(2*a0))^(3/2) * ...
 P =  @(tind, t, x, y) r11(tind) * abs(phi1(x, y))^2 + r22(tind) * abs(phi2(x, y))^2 + ... 
     (r12(tind) * exp(1i * (w2 - w1) * t) + r21(tind) * exp(1i * (w1 - w2) * t)) * phi1(x, y) * phi2(x, y);
     
-x = linspace(-1 * a0, 1 * a0, 500);
+linepoints = 500;
+x = linspace(-1 * a0, 1 * a0, linepoints);
 [X, Y] = meshgrid(x);
+Z = zeros(linepoints, linepoints);
 
-%Store the plots of the probability distribution of electron, and the Bloch vector
-fig = figure;
-set(fig, 'Visible', 'off', 'position', [1 1 600 1200])
-m = 0;
-[h1, h2, h3] = sphere;
+
+for j = 1 : linepoints
+    for k = 1 : linepoints
+        Phis1(j, k) = phi1(X(j, k), Y(j, k));
+        Phis2(j, k) = phi2(X(j, k), Y(j, k));
+    end
+end
+Phi1abs = abs(Phis1).^2;
+Phi2abs = abs(Phis2).^2;
+
+Zs = zeros(linepoints, linepoints, numpoints);
 
 for t = 1 : length(T)
-    %Transition
-    for j = 1 : length(x)
-        for k = 1 : length(x)
-            Z(j, k) = P(t, T(t), X(j, k), Y(j, k));
-        end
-    end
-    subplot(2,1,1)
-    s = surf(Z);
-    s.EdgeColor = 'none';
-    colormap hot;
-    view(2)
-    drawnow
+    Zs(:, :, t) = r11(t) * Phi1abs + r22(t) * Phi2abs + ...
+        (r12(t) * exp(1i * (w2 - w1) * T(t)) + r21(t) * exp(1i * (w1 - w2) * T(t))) .* Phis1 .* Phis2;
+end
+
+fig = figure;
+set(fig, 'Visible', 'on', 'position', [1 1 600 1200])
+
+pl1 = subplot(2,1,1);
+s = surf(pl1, Z);
+s.EdgeColor = 'none';
+colormap hot;
+view(2)
+
+pl2 = subplot(2,1,2);
+axis([-1 1 -1 1 -1 1])
+view(25, 25)
+hold(pl2)
+q = quiver3(pl2, 0, 0, 0, u(1), v(1), w(1));
+pl3 = plot3(pl2, [u(1) u(1)], [v(1) v(1)], [w(1) w(1)], 'blue', 'LineWidth', 2);
+[h1, h2, h3] = sphere;
+mesh(pl2, h1, h2, h3, zeros(length(h1)), 'FaceAlpha', 0.1)
+xline(0, '-', 'v');
+yline(0, '-', 'u');
+hold(pl2)
+
+%Store the plots of the probability distribution of electron, and the Bloch vector
+for t = 1 : length(T)
+    s.ZData = Zs(:, :, t);
     
     %Bloch sphere
-    subplot(2,1,2)
-    quiver3(0, 0, 0, u(t), v(t), w(t))
-    hold on
-    mesh(h1, h2, h3, zeros(length(h1)), 'FaceAlpha', 0.1)
+    q.UData = u(t);
+    q.VData = v(t);
+    q.WData = w(t);
     if t > 2
-        for m = 2 : t
-            plot3([u(m) u(m - 1)], [v(m) v(m - 1)], [w(m) w(m - 1)], 'blue', 'LineWidth', 2)
-        end
+        hold on
+        plot3(pl2, [u(t) u(t - 1)], [v(t) v(t - 1)], [w(t) w(t - 1)], 'blue', 'LineWidth', 2);
+        hold off
     end
-    xline(0, '-', 'v');
-    yline(0, '-', 'u');
-    
-    hold off
-    axis([-1 1 -1 1 -1 1])
-    view(25, 25)
+
+    drawnow
     storeMovie(t) = getframe(fig);
 end
 
