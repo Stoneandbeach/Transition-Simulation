@@ -55,15 +55,10 @@ phi1 = @(x, y) sqrt(1/(4*pi)) * (1/a0)^(3/2) * 2 * exp(-sqrt(x^2 + y^2) / a0);
 phi2 = @(x, y) sqrt(3/(4*pi)) * y / sqrt(x^2 + y^2) * (1/(2*a0))^(3/2) * ...
     2 * (1 - sqrt(x^2 + y^2)/a0) * exp(-sqrt(x^2 + y^2) / a0);
 
-%Probability distribution
-P =  @(tind, t, x, y) r11(tind) * abs(phi1(x, y))^2 + r22(tind) * abs(phi2(x, y))^2 + ... 
-    (r12(tind) * exp(1i * (w2 - w1) * t) + r21(tind) * exp(1i * (w1 - w2) * t)) * phi1(x, y) * phi2(x, y);
-    
 linepoints = 500;
 x = linspace(-1 * a0, 1 * a0, linepoints);
 [X, Y] = meshgrid(x);
 Z = zeros(linepoints, linepoints);
-
 
 for j = 1 : linepoints
     for k = 1 : linepoints
@@ -75,14 +70,13 @@ Phi1abs = abs(Phis1).^2;
 Phi2abs = abs(Phis2).^2;
 
 Zs = zeros(linepoints, linepoints, numpoints);
-
 for t = 1 : length(T)
     Zs(:, :, t) = r11(t) * Phi1abs + r22(t) * Phi2abs + ...
         (r12(t) * exp(1i * (w2 - w1) * T(t)) + r21(t) * exp(1i * (w1 - w2) * T(t))) .* Phis1 .* Phis2;
 end
 
 fig = figure;
-set(fig, 'Visible', 'on', 'position', [1 1 600 1200])
+set(fig, 'Visible', 'on', 'position', [1 1 500 1000])
 
 pl1 = subplot(2,1,1);
 s = surf(pl1, Z);
@@ -125,7 +119,7 @@ end
 fig2 = figure;
 axis off
 set(fig2, 'position', [50 50 width height])
+buttonReplay = uicontrol;
+buttonReplay.String = 'Replay';
+buttonReplay.Callback = @(~, ~) movie(fig2, storeMovie);
 movie(fig2, storeMovie)
-
-%Once the script has run, the movie may be shown again by simply executing the following line:
-%movie(fig2, storeMovie)
